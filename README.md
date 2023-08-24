@@ -46,7 +46,7 @@ C:\THETRIS>thetris
 
 ## Contributors
 
-All graphics were done by Tero Saarni back in the day.
+All graphics were done by [Tero Saarni](https://github.com/tsaarni) back in the day.
 
 ## License
 
