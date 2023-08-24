@@ -1,0 +1,64 @@
+name: Build a web page for playing thetris
+
+on:
+  workflow_dispatch:
+
+# Required by github-pages-deploy-action to push pages to the repository
+permissions:
+  contents: write
+
+env:
+  RELEASE_URL: https://api.github.com/repos/tsaarni/thetris/releases/latest
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    # Technically not needed but pubslishing to Github Pages requires it
+    - name: Checkout source
+      uses: actions/checkout@v3
+
+    # https://emscripten.org/docs/getting_started/downloads.html
+    - name: Clone emsdk
+      uses: actions/checkout@v3
+      with:
+        repository: emscripten-core/emsdk
+        path: emsdk
+
+    - name: Install emscripten
+      working-directory: emsdk
+      run: |
+        ./emsdk install latest
+        ./emsdk activate latest
+
+    # https://github.com/dreamlayers/em-dosbox
+    - name: Checkout em-dosbox
+      uses: actions/checkout@v3
+      with:
+        repository: dreamlayers/em-dosbox
+        path: em-dosbox
+
+    - name: Compile em-dosbox
+      working-directory: em-dosbox
+      run: |
+        source ${{ github.workspace }}/emsdk/emsdk_env.sh
+        ./autogen.sh
+        emconfigure ./configure
+        make
+
+    - name: Package exe with em-dosbox
+      working-directory: em-dosbox/src
+      run: |
+        source ${{ github.workspace }}/emsdk/emsdk_env.sh
+        curl -LJO $(curl -s $RELEASE_URL | jq -r '.assets[] | select(.name == "THETRIS.EXE") | .browser_download_url')
+        mkdir ${{ github.workspace }}/publish
+        python3 packager.py ${{ github.workspace }}/publish/index THETRIS.EXE
+        cp dosbox.js dosbox.wasm ${{ github.workspace }}/publish
+
+    - name: Deploy to GitHub Pages
+      uses: JamesIves/github-pages-deploy-action@v4.4.1
+      with:
+        branch: gh-pages
+        folder: publish
