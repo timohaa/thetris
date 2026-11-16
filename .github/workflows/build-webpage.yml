@@ -18,11 +18,11 @@ jobs:
 
     # Technically not needed but pubslishing to Github Pages requires it
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v7
 
     # https://emscripten.org/docs/getting_started/downloads.html
     - name: Clone emsdk
-      uses: actions/checkout@v3
+      uses: actions/checkout@v7
       with:
         repository: emscripten-core/emsdk
         path: emsdk
@@ -35,7 +35,7 @@ jobs:
 
     # https://github.com/dreamlayers/em-dosbox
     - name: Checkout em-dosbox
-      uses: actions/checkout@v3
+      uses: actions/checkout@v7
       with:
         repository: dreamlayers/em-dosbox
         path: em-dosbox
