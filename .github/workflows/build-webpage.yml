@@ -58,7 +58,7 @@ jobs:
         cp dosbox.js dosbox.wasm ${{ github.workspace }}/publish
 
     - name: Deploy to GitHub Pages
-      uses: JamesIves/github-pages-deploy-action@v4.4.1
+      uses: JamesIves/github-pages-deploy-action@v4.9.0
       with:
         branch: gh-pages
         folder: publish
