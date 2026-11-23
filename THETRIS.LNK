@@ -1,0 +1,4 @@
+obj\main+obj\palette+obj\menu+obj\screen+obj\game+obj\move+
+obj\score+obj\next+obj\files+obj\piece+obj\keyboard+obj\data+
+gfx\thetfon3+gfx\thetpal2+gfx\thettau2+gfx\thetreq2+gfx\thetlog3+gfx\trishigh
+thetris.exe
