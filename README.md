@@ -7,9 +7,14 @@ I wrote this in 1994-1995 as an exercise to learn the x86 assembly language. If 
 me correctly, I got a ton of hints and tips from Teemu Valtonen (aka. Saracen/EMF back in the
 demo scene days).
 
-The code isn't of particularly high quality. E.g., some of the labels and comments are in
-Finnish, etc. It used to be one large file, which has since been split into modules without
-touching the code itself, so it still builds into the same program as before.
+The code isn't of particularly high quality. It used to be one large file with some of the
+labels and comments in Finnish. It has since been split into modules, commented and
+translated into English without touching the code itself, so it still builds into the same
+program as before.
+
+The original, unmodified source is in commit
+[`5739743`](https://github.com/timohaa/thetris/tree/573974346ee7a22f3f028f36ca8c847bba277154),
+the last one before the split.
 
 ## How to Compile
 
