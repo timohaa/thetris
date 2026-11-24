@@ -1,23 +1,39 @@
 # The Tris
 
-The Tris is a clone of a rather well known game of Russian origin, written in 100 % 80386 assembly, for the IBM PC clone architecture.
+The Tris is a clone of a rather well known game of Russian origin, written in 100 % 80386
+assembly, for the IBM PC clone architecture.
 
-I wrote this in 1994-1995 as an exercise to learn the x86 assembly language. If my memory serves me correctly, I got a ton of hints and tips from Teemu Valtonen (aka. Saracen/EMF back in the demo scene days).
+I wrote this in 1994-1995 as an exercise to learn the x86 assembly language. If my memory serves
+me correctly, I got a ton of hints and tips from Teemu Valtonen (aka. Saracen/EMF back in the
+demo scene days).
 
-The code isn't of particularly high quality. E.g., some of the labels and comments are in Finnish, etc. It used to be one large file, which has since been split into modules without touching the code itself, so it still builds into the same program as before.
+The code isn't of particularly high quality. E.g., some of the labels and comments are in
+Finnish, etc. It used to be one large file, which has since been split into modules without
+touching the code itself, so it still builds into the same program as before.
 
 ## How to Compile
 
 You will need MS-DOS in one form or another, and Borland Turbo Assembler.
 
-DOSBox (https://www.dosbox.com) is an easy alternative.
+DOSBox (<https://www.dosbox.com>) is an easy alternative.
 
-I found old copies of TASM 4.0 installation disks, and they worked fine. The software appears to be available for download from so-called abandonware sites, but I am unsure about their legality, so I am not linking to them here.
+I found old copies of TASM 4.0 installation disks, and they worked fine. The software appears to
+be available for download from so-called abandonware sites, but I am unsure about their legality,
+so I am not linking to them here.
 
-Place all the files into a folder, keeping the subfolders, make sure TASM and TLINK are in the path, and run MAKE.BAT. It assembles the modules into an OBJ folder and links THETRIS.EXE.
+Place all the files into a folder, keeping the subfolders, make sure TASM and TLINK are in the
+path, and run MAKE.BAT. It assembles the modules into an OBJ folder and links THETRIS.EXE.
 
 ```MS-DOS
 C:\THETRIS>make
+```
+
+On macOS, `tools/build.sh` runs the same MAKE.BAT in a headless
+[DOSBox-X](https://dosbox-x.com) and prints the SHA-256 of the resulting THETRIS.EXE. Point the
+`TASM_DIR` environment variable at the folder that holds TASM.EXE and TLINK.EXE first.
+
+```sh
+TASM_DIR=~/dos/tasm tools/build.sh
 ```
 
 ## Usage
@@ -50,6 +66,8 @@ C:\THETRIS>thetris
 | inc/THETRIS.PAL  | A generated palette file                                                                                 |
 | gfx/*.OBJ        | These are the graphics as linkable OBJ files.                                                            |
 | gfx/*.LBM        | The graphics in Deluxe Paint format (320 px x 200 px, 256 colors)                                        |
+| tools/build.sh   | Builds the game in a headless DOSBox-X and prints the SHA-256 of THETRIS.EXE.                            |
+| tools/lint.sh    | Checks the source format: line endings, encoding, column layout and module registration.                 |
 
 ## Screenshots
 
