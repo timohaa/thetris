@@ -8,6 +8,7 @@
 cseg            segment
                 assume  cs:cseg,ds:dseg
 
+; Plays games until the player returns to the menu.
 game            proc    near
 
                 mov     dx,seg dseg
@@ -15,14 +16,15 @@ game            proc    near
                 mov     al,ds:[flags]
                 mov     ds:[curr_flags],al
 
-uusi:           call    ask_level
+new_game:       call    ask_level
                 cmp     al,1h
-                jnz     anti_menna
+                jnz     start_game
                 ret
-anti_menna:     mov     dx,seg picture
+; Draw the playfield picture.
+start_game:     mov     dx,seg picture
                 mov     ds,dx
                 mov     si,offset picture
-                mov     dx,0a000h
+                mov     dx,vga_seg
                 mov     es,dx
                 xor     di,di
                 mov     cx,16000
@@ -31,6 +33,7 @@ anti_menna:     mov     dx,seg picture
                 mov     dx,seg dseg
                 mov     ds,dx
 
+; speed = 31-3*level frames between drops
                 mov     al,ds:[level]
                 mov     bl,3
                 mul     bl
@@ -38,10 +41,12 @@ anti_menna:     mov     dx,seg picture
                 sub     bl,al
                 mov     ds:[speed],bl
 
+; Pick twice: the first call fills the next piece, the second makes it
+; the current one.
                 mov     ds:[next_piece],0
                 mov     ds:[next_angle],0
-                call    arvo_next_piece
-                call    arvo_next_piece
+                call    pick_next_piece
+                call    pick_next_piece
 
                 mov     al,ds:[speed]
                 dec     al
@@ -53,6 +58,9 @@ anti_menna:     mov     dx,seg picture
 
                 call    show_score
                 call    fade_in
+
+; Main loop: poll the keyboard until the vertical retrace, then count the
+; frame and drop the piece when the timer reaches speed.
 wait_loop:      mov     dx,seg dseg
                 mov     ds,dx
                 mov     dx,3dah
@@ -77,7 +85,8 @@ wbl2:           in      al,dx
                 test    al,0ffh
                 jz      wait_loop
 
-pomppa:         xor     ah,ah
+; The piece has landed: 3*(level+1) points.
+piece_landed:   xor     ah,ah
                 mov     al,ds:[level]
                 inc     al
                 mov     bl,3
@@ -96,12 +105,13 @@ pomppa:         xor     ah,ah
                 call    check_lines
                 pop     ds
                 test    al,0ffh
-                jnz     linjoja_poistui
+                jnz     lines_removed
 
+; A piece that landed on the top row ends the game.
                 test    ds:[current_row],0ffh
                 jz      game_over
 
-linjoja_poistui:call    arvo_next_piece
+lines_removed:  call    pick_next_piece
                 mov     ds:[current_row],0
                 mov     ds:[current_column],4
 no_event:
@@ -131,6 +141,7 @@ no_left:
 no_right:
                 cmp     byte ptr ds:[drop_key],al
                 jnz     no_spacebar
+; Dropping gives (level+20-current_row)/4 extra points.
                 xor     ah,ah
                 mov     al,ds:[level]
                 mov     bx,20
@@ -141,11 +152,12 @@ no_right:
                 push    ds
                 call    drop_at_once
                 pop     ds
-                jmp     pomppa
+                jmp     piece_landed
 no_spacebar:
                 cmp     byte ptr ds:[pause_key],al
                 jnz     no_pause
 
+; Pause: black out the screen until the pause key is pressed again.
                 pusha
                 mov     bl,0
                 call    set_pal
@@ -184,9 +196,9 @@ game_over:
                 mov     dx,seg requester
                 mov     ds,dx
                 mov     si,offset requester
-;159*65
+;the requester picture is 159*65 pixels
 
-                mov     dx,0a000h
+                mov     dx,vga_seg
                 mov     es,dx
                 mov     di,80+67*320
 
@@ -201,7 +213,7 @@ req_loop:       push    cx
                 mov     dx,dseg
                 mov     ds,dx
 
-                call    high_scoreko
+                call    check_high_score
 
                 mov     si,offset game_over_tx
                 mov     ax,159
@@ -220,34 +232,37 @@ wait_keyr:      mov     ax,fs:[keycode]
                 test    al,0ffh
                 jz      wait_keyr
                 mov     word ptr ds:[keycode],0h
-                cmp     al,1eh
-                jnz     eiuusi
+                cmp     al,1eh          ;A
+                jnz     not_again
 
                 call    fade_out
-                jmp     uusi
-eiuusi:
-                cmp     al,1
+                jmp     new_game
+not_again:
+                cmp     al,1            ;Esc
                 jnz     wait_keyr
                 call    fade_out
                 ret
 
-high_scoreko:
+; Checks the score against the high score table of the game played. A top
+; ten score makes room in the table, asks for a name and saves the tables.
+
+check_high_score:
                 pusha
 
                 mov     si,offset hstab_a
 
-                cmp     number_of_pieces,7
-                jz      hsgame_eib
+                cmp     number_of_pieces,7  ;game A has 7 pieces
+                jz      hs_not_game_b
                 mov     si,offset hstab_b
-hsgame_eib:
+hs_not_game_b:
                 mov     ax,score
 
                 mov     cx,10
-hs_looppi:      cmp     41[si],ax
+hs_find_loop:   cmp     41[si],ax       ;the score is at offset 41
                 jb      bigger
                 add     si,43
-                loop    hs_looppi
-                jmp     ei_highscorea
+                loop    hs_find_loop
+                jmp     no_high_score
 bigger:
                 mov     dx,ds
                 mov     es,dx
@@ -256,6 +271,7 @@ bigger:
 
                 mov     player_name,dx
 
+; Move the entries from this place on one place down, the last one first.
                 mov     ax,43
                 mul     cx
 
@@ -282,6 +298,7 @@ hscopyloop:     movsd
 
                 mov     di,player_name
 
+; Empty the name of the freed entry and store the score in it.
                 mov     name_counter,0h
                 mov     byte ptr [di],0h
                 mov     ax,score
@@ -301,13 +318,14 @@ wait_keyrrrr:   mov     ax,fs:[keycode]
                 jz      wait_keyrrrr
                 mov     word ptr ds:[keycode],0h
 
+; Turn the scan code into a character, upper case with shift.
                 mov     si,offset ascii_dcase
 
                 test    ax,100h
-                jz      ei_shiftia
+                jz      no_shift
 
                 mov     si,offset ascii_ucase
-ei_shiftia:
+no_shift:
                 xor     bx,bx
                 mov     bl,al
 
@@ -316,34 +334,36 @@ ei_shiftia:
                 test    al,al
                 jz      wait_keyrrrr
 
+; A name does not start with a space.
                 cmp     al,' '
-                jnz     ei_space
+                jnz     not_space
 
                 cmp     name_counter,0
                 jz      wait_keyrrrr
 
-ei_space:
+not_space:
 
                 cmp     al,CR
-                jz      retikka
+                jz      name_entered
 
                 mov     si,player_name
                 mov     bx,name_counter
 
                 cmp     al,BS
-                jnz     ei_BS
+                jnz     not_bs
 
                 test    bx,bx
-                jz      ohi
+                jz      redraw_name
 
                 dec     bx
                 mov     byte ptr [si+bx],0h
-                jmp     ohi
+                jmp     redraw_name
 
-ei_BS:
+not_bs:
 
+; A name holds 40 letters at most and has to fit its column.
                 cmp     bx,40
-                jz      ohi
+                jz      redraw_name
 
                 pusha
 
@@ -354,15 +374,16 @@ ei_BS:
 
                 popa
 
-                ja      ohi
+                ja      redraw_name
 
                 mov     [si+bx],al
                 inc     bx
                 mov     byte ptr [si+bx],0h
 
-ohi:
+redraw_name:
                 mov     name_counter,bx
 
+; Draw the name again over a blanked line.
                 mov     si,offset empty_buf2
                 mov     ax,159
                 mov     bx,108
@@ -375,9 +396,9 @@ ohi:
 
                 jmp     wait_keyrrrr
 
-retikka:        call    write_highscores
+name_entered:   call    write_highscores
 
-ei_highscorea:  popa
+no_high_score:  popa
                 ret
 
 

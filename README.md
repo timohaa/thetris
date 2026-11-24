@@ -62,7 +62,7 @@ C:\THETRIS>thetris
 | src/DATA.ASM     | The data segment: texts, tables and variables.                                                           |
 | inc/COMMON.INC   | Constants, segments and the symbols the modules use from each other.                                     |
 | inc/DEFHIGH.ASM  | Default high score table                                                                                 |
-| inc/KIRJAPU.ASM  | Contains offsets into the graphic file that has all the characters and numbers.                          |
+| inc/FONT.ASM     | Contains offsets into the graphic file that has all the characters and numbers.                          |
 | inc/THETRIS.PAL  | A generated palette file                                                                                 |
 | gfx/*.OBJ        | These are the graphics as linkable OBJ files.                                                            |
 | gfx/*.LBM        | The graphics in Deluxe Paint format (320 px x 200 px, 256 colors)                                        |

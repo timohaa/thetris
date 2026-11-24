@@ -1,4 +1,7 @@
 
+; High score tables of game A and game B. An entry is 43 bytes: a name of up
+; to 40 letters, a 0, and the score as a word. A table has ten entries and an
+; eleventh that takes the entry pushed off the end.
 hstab_a         db      43 dup(0)
                 db      43 dup(0)
                 db      43 dup(0)

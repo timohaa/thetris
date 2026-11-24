@@ -7,6 +7,7 @@
 cseg            segment
                 assume  cs:cseg,ds:dseg
 
+; Sets every colour to black.
 clear_palette   proc    near
                 push    ds
                 xor     bl,bl
@@ -15,12 +16,14 @@ clear_palette   proc    near
                 ret
                 endp
 
+; Fades the screen to black over 32 frames when fading is on. With fading
+; off the screen stays as it is and only keycode is cleared.
 fade_out        proc    near
                 pusha
                 mov     dx,dseg
                 mov     ds,dx
                 test    ds:[flags],fadeflag
-                jz      ei_fadea
+                jz      no_fade
                 mov     bl,32
 fo_loop:        call    waitblank
                 call    set_pal
@@ -29,20 +32,22 @@ fo_loop:        call    waitblank
                 jnz     fo_loop
                 popa
                 ret
-ei_fadea:       mov     ds:[keycode],0
+no_fade:        mov     ds:[keycode],0
                 popa
                 ret
                 endp
 
+; Fades the screen in from black over 32 frames. With fading off the full
+; palette is set at once.
 fade_in         proc    near
                 pusha
                 mov     dx,dseg
                 mov     ds,dx
                 test    ds:[flags],fadeflag
-                jnz     fadetus
+                jnz     do_fade
                 mov     bl,31
                 jmp     fi_loop
-fadetus:        xor     bl,bl
+do_fade:        xor     bl,bl
 fi_loop:        inc     bl
                 call    waitblank
                 call    set_pal
@@ -52,6 +57,8 @@ fi_loop:        inc     bl
                 ret
                 endp
 
+; Sets the whole palette at one brightness. bl=brightness, 0 (black) - 32
+; (full).
 set_pal         proc    near
                 mov     dx,seg palette
                 mov     ds,dx
@@ -69,6 +76,7 @@ sp_lop:         lodsb
                 ret
                 endp
 
+; Waits until a vertical retrace has started and ended.
 waitblank       proc    near
                 mov     dx,3dah
 w_bl:           in      al,dx

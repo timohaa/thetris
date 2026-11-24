@@ -1,8 +1,10 @@
-kirjapu         db      "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUu"
+; The characters of the font, in the order they lie in the font picture.
+font_chars      db      "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUu"
                 db      "VvWwXxYyZzèÜéÑôî0123456789()!?.,:-+'"
                 db      230,231,232,233,234,235,236,237,238,239," "
 
-kirj_leveydet   dw      8,8,8,8,8,8,8,8,7,8,8,5,8,8,8,8,3,3,8,4,8,8,7,3
+; Width of each character in pixels.
+font_widths     dw      8,8,8,8,8,8,8,8,7,8,8,5,8,8,8,8,3,3,8,4,8,8,7,3
                 dw      10,11,8,8,9,8,8,8,9,8,8,8,8,8,7,5,9,8
 
                 dw      8,8,10,11,9,8,9,8,8,8,9,8,8,8,8,8,8,5,8,8,8,8,8,8,8,8
@@ -10,10 +12,12 @@ kirj_leveydet   dw      8,8,8,8,8,8,8,8,7,8,8,5,8,8,8,8,3,3,8,4,8,8,7,3
 
                 dw      9,9,9,6
 
+; Offset of each character in the font picture. r2 and r3 start the second
+; and the third row of letters.
 r2              equ     317*11
 r3              equ     317*11*2
 ;                         8,8,  8, 8, 8, 8, 8, 8, 7, 8, 8, 5,  8,  8,  8,  8,  3,  3,  8,  4,  8,  8,  7,  3
-kirj_offsetit   dw      0,8,16,24,32,40,48,56,64,71,79,87,92,100,108,116,124,127,130,138,142,150,158,165,168
+font_offsets    dw      0,8,16,24,32,40,48,56,64,71,79,87,92,100,108,116,124,127,130,138,142,150,158,165,168
 ;                        10, 11,  8,  8,  9,  8,  8,  8,  9,  8,  8,  8,  8,  8,  7,  5,  9,  8
                 dw      178,189,197,205,214,222,230,238,247,255,263,271,279,287,294,299,308
 
@@ -24,4 +28,3 @@ kirj_offsetit   dw      0,8,16,24,32,40,48,56,64,71,79,87,92,100,108,116,124,127
 
 ;                dw             9,    9,    9,6
                 dw      r3+0,r3+9,r3+18,r3+27
-;   dw      89 dup(0)

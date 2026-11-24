@@ -8,7 +8,7 @@
 dseg            segment
 
                 include thetris.pal
-                include kirjapu.asm
+                include font.asm
                 include defhigh.asm
 highscore_filename db   'thetris.hi',0
 setup_filename  db      'thetris.cfg',0
@@ -34,7 +34,7 @@ a_again_tx      db      'A .............. Play again',0
 main_men_tx     db      'Esc ...... Game menu',0
 high_score_tx   db      'Top 10 score!',0
 type_name_tx    db      'Type your name:',0
-player_name     dw      0
+player_name     dw      0               ;address of the entry being typed
 redefine_text   db      '-+ Key redefinition +-',0
 left_key_text   db      'Move left: ',0
 right_key_text  db      'Move right: ',0
@@ -44,6 +44,8 @@ drop_key_text   db      'Drop: ',0
 sound_key_text  db      'Sound toggle: ',0
 next_key_text   db      'Next piece shown toggle: ',0
 pause_key_text  db      'Pause: ',0
+; Buffers for conv_int and for blanking a text on the screen. empty_buf2
+; has no end mark, so it runs on into empty_buf.
 int_conv_buf    db      0,0,0,0,0,0,0
 bufbuf          db      0,0
 converter       db      230
@@ -59,6 +61,7 @@ it_7            db      'the shareware concept.',0
 it_8            db      'The contact addresses can be found in the',0
 it_9            db      'document file included in the package.',0
 it_10           db      'This is an unregistered version',0
+; Unused texts from the original source, kept as they were.
 ;it_11           db      "Tero Saarni",0
 ;it_12           db      'ONLY',0
 info_texts      dw      offset it_1
@@ -77,14 +80,16 @@ info_texts      dw      offset it_1
 ;                dw      offset it_11
 ;                dw      offset it_12
                 dw      0
-paloja          dw      044c0h,00e20h,06440h,08e00h     ;0 white
+; Piece shapes: one line for each piece, one word for each angle. A word is
+; a 4*4 bit map, top row in the highest four bits.
+piece_shapes    dw      044c0h,00e20h,06440h,08e00h     ;0 white
                 dw      00f00h,02222h,00f00h,02222h     ;1 red
                 dw      00cc0h,00cc0h,00cc0h,00cc0h     ;2 blue
                 dw      006c0h,04620h,006c0h,04620h     ;3 green
                 dw      00e80h,04460h,02e00h,0c440h     ;4 magenta
                 dw      00e40h,04640h,04e00h,04c40h     ;5 brown
                 dw      00c60h,02640h,00c60h,02640h     ;6 cyan
-;--- level B
+;--- game B adds these
                 dw      08000h,08000h,08000h,08000h     ;7 yellow
                 dw      0c8c0h,00ae0h,06260h,0ea00h
                 dw      0c800h,08c00h,04c00h,0c400h
@@ -93,7 +98,9 @@ paloja          dw      044c0h,00e20h,06440h,08e00h     ;0 white
                 dw      02e80h,0c460h,02e80h,0c460h
                 dw      04e40h,04e40h,04e40h,04e40h
                 dw      06c80h,08c60h,026c0h,0c620h
-koordit         dw      n_p+9+4*320,n_p+4,n_p+320*4,n_p+4+8*320
+; Screen position (x+y*320) of the next piece preview for each piece and
+; angle.
+preview_coords  dw      n_p+9+4*320,n_p+4,n_p+320*4,n_p+4+8*320
                 dw      n_p+320*4,n_p-5,n_p+320*4,n_p-5
                 dw      n_p+9,n_p+9,n_p+9,n_p+9
                 dw      n_p+4,n_p+4*320,n_p+4,n_p+4*320
@@ -109,20 +116,22 @@ koordit         dw      n_p+9+4*320,n_p+4,n_p+320*4,n_p+4+8*320
                 dw      n_p+4+4*320,n_p+4+4*320,n_p+4+4*320,n_p+4+4*320
                 dw      n_p+4+4*320,n_p+4+4*320,n_p+4+4*320,n_p+4+4*320
 
-asciilista      dw      0,esctx,n1tx,n2tx,n3tx,n4tx,n5tx,n6tx,n7tx,n8tx,n9tx,n0tx
-                dw      miinustx,onyhtakuintx,bstx,tabtx,qtx,wtx,etx,rtx,ttx
-                dw      ytx,utx,itx,otx,ptx,vasenhakatx,oikeahakatx,entertx
+; Name of the key for each scan code, for the key redefinition screen.
+key_names       dw      0,esctx,n1tx,n2tx,n3tx,n4tx,n5tx,n6tx,n7tx,n8tx,n9tx,n0tx
+                dw      minustx,equaltx,bstx,tabtx,qtx,wtx,etx,rtx,ttx
+                dw      ytx,utx,itx,otx,ptx,leftbrackettx,rightbrackettx,entertx
                 dw      ctrltx,atx,stx,dtx,ftx,gtx,htx,jtx,ktx,ltx
-                dw      puolipilkkutx,heittotx,heitto2tx,leftshifttx
-                dw      kenoviivatx,ztx,xtx,ctx,vtx,btx,ntx,mtx,pilkkutx
-                dw      pistetx,kauttamerkkitx,rightshifttx,greytahtitx
+                dw      semicolontx,quotetx,backquotetx,leftshifttx
+                dw      backslashtx,ztx,xtx,ctx,vtx,btx,ntx,mtx,commatx
+                dw      periodtx,slashtx,rightshifttx,greystartx
                 dw      alttx,spacebartx,capslocktx,f1tx,f2tx,f3tx,f4tx
                 dw      f5tx,f6tx,f7tx,f8tx,f9tx,f10tx,numlocktx,scrolllocktx
                 dw      hometx,arruptx,pguptx,greyminustx,arrlttx,kp5tx
                 dw      arrrttx,greyplustx,endtx,arrdntx,pgdntx,instx
-                dw      deltx,sysrqtx,0,leftkeno,f11tx,f12tx,PA1tx,f13tx
+                dw      deltx,sysrqtx,0,leftbackslashtx,f11tx,f12tx,PA1tx,f13tx
                 dw      f14tx,f15tx,f16tx,f17tx,f18tx,f19tx,f20tx,f21tx
                 dw      f22tx,f23tx,f24tx,0,0,0,0,0,0,0,0,0,0,0
+; Character for each scan code, without and with shift, for typing a name.
 ascii_dcase     db      0,0,"1234567890-=",BS,0,"qwertyuiop[]",CR
                 db      0,"asdfghjkl;'",0,0,"\zxcvbnm,./",0,"*",0," ",0
                 db      0,0,0,0,0,0,0,0,0,0,0,0,"789-456+1230.",0,0,"\"
@@ -135,8 +144,8 @@ ascii_ucase     db      0,0,"!@#$%^&*()_+",BS,0,"QWERTYUIOP{}",CR
                 db      156 dup(0)
 
 
-kenoviivatx     db      'Backslash',0
-kauttamerkkitx  db      'Slash',0
+backslashtx     db      'Backslash',0
+slashtx         db      'Slash',0
 atx             db      'A',0
 btx             db      'B',0
 ctx             db      'C',0
@@ -173,17 +182,17 @@ n7tx            db      '7',0
 n8tx            db      '8',0
 n9tx            db      '9',0
 n0tx            db      '0',0
-miinustx        db      '-',0
-onyhtakuintx    db      'Equal sign',0
-heittotx        db      "Quote char",0
-heitto2tx       db      'Reverse quote',0
-vasenhakatx     db      'Left bracket',0
-oikeahakatx     db      'Right bracket',0
-puolipilkkutx   db      'Semicolon',0
-pistetx         db      '.',0
-pilkkutx        db      ',',0
+minustx         db      '-',0
+equaltx         db      'Equal sign',0
+quotetx         db      "Quote char",0
+backquotetx     db      'Reverse quote',0
+leftbrackettx   db      'Left bracket',0
+rightbrackettx  db      'Right bracket',0
+semicolontx     db      'Semicolon',0
+periodtx        db      '.',0
+commatx         db      ',',0
 PA1tx           db      'PA1',0
-leftkeno        db      'Left backslash',0
+leftbackslashtx db      'Left backslash',0
 esctx           db      'Esc',0
 bstx            db      'Backspace',0
 tabtx           db      'Tab',0
@@ -191,7 +200,7 @@ entertx         db      'Enter',0
 ctrltx          db      'Ctrl',0
 leftshifttx     db      'Left shift',0
 rightshifttx    db      'Right shift',0
-greytahtitx     db      'Grey *',0
+greystartx      db      'Grey *',0
 greyminustx     db      'Grey -',0
 greyplustx      db      'Grey +',0
 alttx           db      'Alt',0
@@ -237,6 +246,8 @@ f21tx           db      'F21',0
 f22tx           db      'F22',0
 f23tx           db      'F23',0
 f24tx           db      'F24',0
+; flags holds the saved settings and curr_flags the copy a game changes.
+; The setup file is the 17 bytes from flags to pause_key.
 curr_flags      db      0
 flags           db      fadeflag
 left_key        dw      4bh
@@ -247,11 +258,11 @@ drop_key        dw      39h
 sound_key       dw      1fh
 next_key        dw      31h
 pause_key       dw      19h
-timer           db      ?
-speed           db      ?
-number_of_pieces db     ?
+timer           db      ?               ;frames since the last drop
+speed           db      ?               ;frames between drops
+number_of_pieces db     ?               ;7 in game A, 15 in game B
 level           db      ?
-rows            dw      ?
+rows            dw      ?               ;lines removed in this game
 score           dw      ?
 text_x          dw      ?
 text_y          dw      ?
@@ -261,9 +272,9 @@ current_row     dw      ?
 current_column  dw      ?
 next_piece      dw      ?
 next_angle      dw      ?
-name_counter    dw      ?
+name_counter    dw      ?               ;letters typed into the name
 random_seed     dw      ?
-keycode         dw      ?
+keycode         dw      ?               ;scan code, 100h added with shift
 old_kb_seg      dw      ?
 old_kb_off      dw      ?
 lines_eliminated dw     ?

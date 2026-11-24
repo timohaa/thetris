@@ -7,6 +7,7 @@
 cseg            segment
                 assume  cs:cseg,ds:dseg
 
+; Saves the old keyboard interrupt vector (int 9) and installs new_kb_int.
 set_kbhandler   proc    near
 
                 mov     ax,3509h
@@ -17,15 +18,16 @@ set_kbhandler   proc    near
                 mov     word ptr ds:[old_kb_seg],es
                 mov     word ptr ds:[old_kb_off],bx
 
-                mov     dx,seg oma_kb_int
+                mov     dx,seg new_kb_int
                 mov     ds,dx
-                mov     dx,offset oma_kb_int
+                mov     dx,offset new_kb_int
                 mov     ax,2509h
                 int     21h
 
                 ret
                 endp
 
+; Restores the keyboard interrupt vector saved by set_kbhandler.
 remove_kbhandler proc   near
 
                 mov     dx,seg dseg
@@ -40,10 +42,13 @@ remove_kbhandler proc   near
 
 cseg            ends
 
-intit           segment para public use16 'CODE2'
-                assume  cs:intit
+int_seg         segment para public use16 'CODE2'
+                assume  cs:int_seg
 
-oma_kb_int      proc    far
+; Keyboard interrupt handler. Stores the scan code of a pressed key in the
+; low byte of keycode, with 1 in the high byte when a shift key is down, and
+; keeps the shift state in flags. Every key press also changes random_seed.
+new_kb_int      proc    far
 
                 push    es
                 push    ds
@@ -68,32 +73,32 @@ oma_kb_int      proc    far
 
                 xor     ah,ah
                 test    ds:[flags],lshiftflag+rshiftflag
-                jz      ei_lsifti
+                jz      kb_no_shift
                 mov     ah,1
-ei_lsifti:
+kb_no_shift:
 
                 test    ax,80h
-                jnz     eieieieiei      ;depressions not saved
+                jnz     kb_released     ;key releases are not saved
                 inc     ds:[random_seed]
                 mov     word ptr ds:[keycode],ax
-eieieieiei:
+kb_released:
 
                 cmp     al,2ah          ;left shift
-                jnz     eieieilshift
+                jnz     not_lshift
                 or      ds:[flags],lshiftflag
-eieieilshift:
+not_lshift:
                 cmp     al,36h          ;right shift
-                jnz     eieieirshift
+                jnz     not_rshift
                 or      ds:[flags],rshiftflag
-eieieirshift:
-                cmp     al,0aah          ;left shift dep
-                jnz     eieieilshiftd
+not_rshift:
+                cmp     al,0aah         ;left shift released
+                jnz     not_lshift_up
                 and     ds:[flags],-1-lshiftflag
-eieieilshiftd:
-                cmp     al,0b6h          ;right shift dep
-                jnz     eieieirshiftd
+not_lshift_up:
+                cmp     al,0b6h         ;right shift released
+                jnz     not_rshift_up
                 and     ds:[flags],-1-rshiftflag
-eieieirshiftd:
+not_rshift_up:
 
                 cli
                 mov     al,20h

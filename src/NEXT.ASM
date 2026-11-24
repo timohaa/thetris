@@ -7,6 +7,7 @@
 cseg            segment
                 assume  cs:cseg,ds:dseg
 
+; bl=range. Returns ax=random number, 0 - bl-1.
 rand            proc    near
                 mov     dx,seg dseg
                 mov     ds,dx
@@ -21,7 +22,9 @@ rand            proc    near
                 ret
                 endp
 
-arvo_next_piece proc    near
+; Makes the next piece the current one and picks a new next piece and angle.
+; A pick equal to the current piece is redone once, so repeats are rarer.
+pick_next_piece proc    near
 
                 call    clr_next
 
@@ -32,10 +35,10 @@ arvo_next_piece proc    near
                 mov     bl,ds:[number_of_pieces]
                 call    rand
                 cmp     ds:[current_piece],ax
-                jnz     ooki
+                jnz     np_ok
                 mov     bl,ds:[number_of_pieces]
                 call    rand
-ooki:           mov     ds:[next_piece],ax
+np_ok:          mov     ds:[next_piece],ax
                 mov     bl,4
                 call    rand
                 mov     ds:[next_angle],ax
@@ -44,9 +47,10 @@ ooki:           mov     ds:[next_piece],ax
                 ret
                 endp
 
+; Draws the next piece preview when the preview is on.
 draw_next       proc    near
                 test    ds:[curr_flags],nextflag
-                jz      ohize
+                jz      dn_skip
                 push    ds
                 mov     cx,ds:[next_piece]
                 mov     dx,ds:[next_angle]
@@ -54,12 +58,13 @@ draw_next       proc    near
                 sal     bx,3
                 add     bx,dx
                 add     bx,dx
-                mov     bx,ds:[koordit+BX]
+                mov     bx,ds:[preview_coords+BX]
                 call    put_put
                 pop     ds
-ohize:          ret
+dn_skip:        ret
                 endp
 
+; Erases the next piece preview.
 clr_next        proc    near
                 push    ds
                 mov     cx,ds:[next_piece]
@@ -68,7 +73,7 @@ clr_next        proc    near
                 sal     bx,3
                 add     bx,dx
                 add     bx,dx
-                mov     bx,ds:[koordit+BX]
+                mov     bx,ds:[preview_coords+BX]
                 call    clr_clr
                 pop     ds
                 ret

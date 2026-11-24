@@ -7,22 +7,25 @@
 
 ;--------------------------------------------------------------- CONSTANTS
 
-BS              equ     20
-CR              equ     13
+BS              equ     20              ;marks backspace in the scan code tables
+CR              equ     13              ;marks enter in the scan code tables
+; Bits of flags and curr_flags.
 fadeflag        equ     1
 soundflag       equ     2
 lshiftflag      equ     4
 rshiftflag      equ     8
 nextflag        equ     16
-eka_x           equ     115
-n_p             equ     320*28+40
-high_a_x        equ     11
-high_b_x        equ     164
-high_a_xr       equ     157
-high_b_xr       equ     310
-high_a_y        equ     74
-high_b_y        equ     74
-high_taus_y     equ     10
+first_x         equ     115             ;x of the left edge of the playfield
+n_p             equ     320*28+40       ;x+y*320 of the next piece preview
+; High score screen.
+high_a_x        equ     11              ;left edge of the game A names
+high_b_x        equ     164             ;left edge of the game B names
+high_a_xr       equ     157             ;right edge of the game A scores
+high_b_xr       equ     310             ;right edge of the game B scores
+high_a_y        equ     74              ;y of the first row of game A
+high_b_y        equ     74              ;y of the first row of game B
+high_bg_y       equ     10              ;y of the background picture
+vga_seg         equ     0a000h          ;segment of the VGA screen memory
 
 ;---------------------------------------------------------------- GRAPHICS
 
@@ -59,8 +62,8 @@ dseg            segment para public use16 'DATA'
                 global  sound_key_text:byte, next_key_text:byte
                 global  pause_key_text:byte, int_conv_buf:byte
                 global  converter:byte, empty_buf2:byte, empty_buf:byte
-                global  info_texts:word, paloja:word, koordit:word
-                global  asciilista:word, ascii_dcase:byte, ascii_ucase:byte
+                global  info_texts:word, piece_shapes:word, preview_coords:word
+                global  key_names:word, ascii_dcase:byte, ascii_ucase:byte
                 global  curr_flags:byte, flags:byte, left_key:word
                 global  right_key:word, cw_rotate:word, ccw_rotate:word
                 global  drop_key:word, sound_key:word, next_key:word
@@ -72,8 +75,8 @@ dseg            segment para public use16 'DATA'
                 global  next_piece:word, next_angle:word, name_counter:word
                 global  random_seed:word, keycode:word, old_kb_seg:word
                 global  old_kb_off:word, lines_eliminated:word
-                global  old_video_mode:byte, palette:byte, kirjapu:byte
-                global  kirj_leveydet:word, kirj_offsetit:word, hstab_a:byte
+                global  old_video_mode:byte, palette:byte, font_chars:byte
+                global  font_widths:word, font_offsets:word, hstab_a:byte
                 global  hstab_b:byte
 
 dseg            ends
@@ -107,7 +110,7 @@ cseg            segment byte public use16 'CODE'
                 global  check_lines:near, show_score:near, conv_int:near
 
 ; NEXT.ASM
-                global  arvo_next_piece:near, draw_next:near, clr_next:near
+                global  pick_next_piece:near, draw_next:near, clr_next:near
 
 ; FILES.ASM
                 global  read_highscores:near, write_highscores:near

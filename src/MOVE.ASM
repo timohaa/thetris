@@ -7,6 +7,8 @@
 cseg            segment
                 assume  cs:cseg,ds:dseg
 
+; Moves the current piece one row down. Returns al=0 if it moved, al=1 if
+; it landed.
 drop            proc    near
                 mov     dx,seg dseg
                 mov     ds,dx
@@ -30,6 +32,7 @@ draw_new_one:   mov     dx,seg dseg
                 ret
                 endp
 
+; Drops the current piece straight down until it lands.
 drop_at_once    proc    near
                 mov     dx,seg dseg
                 mov     ds,dx
@@ -47,6 +50,7 @@ dao_loop:       inc     ds:[current_row]
                 ret
                 endp
 
+; Moves the current piece one column right if there is room.
 move_right      proc    near
                 mov     dx,seg dseg
                 mov     ds,dx
@@ -64,6 +68,7 @@ dno:            mov     dx,seg dseg
                 ret
                 endp
 
+; Moves the current piece one column left if there is room.
 move_left       proc    near
                 mov     dx,seg dseg
                 mov     ds,dx
@@ -81,6 +86,8 @@ dno2:           mov     dx,seg dseg
                 ret
                 endp
 
+; Turns the current piece counter-clockwise, to the next angle, if there is
+; room.
 rotate          proc    near
                 mov     dx,seg dseg
                 mov     ds,dx
@@ -100,6 +107,7 @@ dno3:           mov     dx,seg dseg
                 ret
                 endp
 
+; Turns the current piece clockwise, to the previous angle, if there is room.
 rotate2         proc    near
                 mov     dx,seg dseg
                 mov     ds,dx

@@ -15,6 +15,7 @@ cseg            segment
 start:
                 mov     dx,dseg
                 mov     ds,dx
+; Seed the random numbers from the BIOS timer tick count at 40:6ch.
                 mov     dx,040h
                 mov     es,dx
                 mov     ax,word ptr es:[6ch]
@@ -34,6 +35,7 @@ start:
                 mov     dx,dseg
                 mov     ds,dx
 
+; Save the video mode and switch to mode 13h (320*200, 256 colours).
                 mov     ah,0fh
                 int     10h
                 mov     ds:[old_video_mode],al
@@ -45,6 +47,7 @@ start:
 
                 call    game_menu
 
+; Restore the video mode and the keyboard interrupt, then exit to DOS.
                 mov     dx,dseg
                 mov     ds,dx
                 xor     ah,ah

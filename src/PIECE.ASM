@@ -7,6 +7,8 @@
 cseg            segment
                 assume  cs:cseg,ds:dseg
 
+; Draws one block of 9*8 pixels. ax=block number (0 - 7), bx=x+y*320.
+; The blocks lie side by side in a picture 72 pixels wide.
 put_block       proc    near
 
                 push    dx
@@ -20,7 +22,7 @@ put_block       proc    near
                 sal     ax,3
                 add     si,ax
 
-                mov     dx,0a000h
+                mov     dx,vga_seg
                 mov     es,dx
                 mov     di,bx           ;bx=x+y*320
 
@@ -61,11 +63,12 @@ put_block       proc    near
 
 ;-----------------------------------------------------------------
 
+; Clears one block of 9*8 pixels to colour 0. bx=x+y*320.
 clr_block       proc    near
 
                 push    dx
 
-                mov     dx,0a000h
+                mov     dx,vga_seg
                 mov     es,dx
                 mov     di,bx           ;bx=x+y*320
                 xor     al,al
@@ -98,27 +101,25 @@ clr_block       proc    near
 
 ;-----------------------------------------------------------------------
 
-; ax=row
-; bx=column
-; cx=piece shape (0 - 6)
-; dx=angle (0-3)
-
+; Draws the current piece at current_row, current_column. The entry point
+; put_put draws any piece: bx=x+y*320 of the piece, cx=piece shape (0 - 14),
+; dx=angle (0-3).
 
 put_piece       proc    near
                 mov     bx,ds:[current_column]
                 mov     ax,ds:[current_row]
 
                 mov     cx,320*8
-                mul     cx              ;ax=ax*320*8
-                add     ax,eka_x
+                mul     cx              ;ax=row*320*8
+                add     ax,first_x
                 add     ax,bx
                 sal     bx,3
-                add     bx,ax
+                add     bx,ax           ;bx=x+y*320 of the piece
 
                 mov     cx,ds:[current_piece]
                 mov     dx,ds:[current_angle]
 
-put_put:        mov     ax,cx
+put_put:        mov     ax,cx           ;the piece number picks the block
                 sal     cx,3                    ;piece number
                 sal     dx,1                    ;angle
 
@@ -126,10 +127,11 @@ put_put:        mov     ax,cx
                 mov     si,cx
                 mov     dx,seg dseg
                 mov     ds,dx
-                mov     dx,word ptr ds:paloja[si]
+                mov     dx,word ptr ds:piece_shapes[si]
 
                 mov     cx,4
 
+; dx holds the shape as a 4*4 bit map, top row in the highest four bits.
 pp_l:           push    cx
                 test    dh,080h
                 jz      pp_1
@@ -156,17 +158,21 @@ pp_4:           add     bx,320-9*3+320*7
 
 ;---------------------------------------------------------------------
 
+; Erases the current piece at current_row, current_column. The entry point
+; clr_clr erases any piece: bx=x+y*320 of the piece, cx=piece shape (0 - 14),
+; dx=angle (0-3).
+
 clr_piece       proc    near
 
                 mov     bx,ds:[current_column]
                 mov     ax,ds:[current_row]
 
                 mov     cx,320*8
-                mul     cx              ;ax=ax*320*8
-                add     ax,eka_x
+                mul     cx              ;ax=row*320*8
+                add     ax,first_x
                 add     ax,bx
                 sal     bx,3
-                add     bx,ax
+                add     bx,ax           ;bx=x+y*320 of the piece
 
                 mov     cx,ds:[current_piece]
                 mov     dx,ds:[current_angle]
@@ -179,10 +185,11 @@ clr_clr:        mov     ax,cx
                 mov     si,cx
                 mov     dx,seg dseg
                 mov     ds,dx
-                mov     dx,word ptr ds:paloja[si]
+                mov     dx,word ptr ds:piece_shapes[si]
 
                 mov     cx,4
 
+; dx holds the shape as a 4*4 bit map, top row in the highest four bits.
 cp_l:           push    cx
                 test    dh,080h
                 jz      cp_1
@@ -208,10 +215,9 @@ cp_4:           add     bx,320-9*3+320*7
 
 ;------------------------------------------------------------------------
 
-; ax=row
-; bx=column
-; cx=piece shape (0 - 6)
-; dx=angle (0-3)
+; Tests whether the current piece (current_piece, current_angle) at
+; current_row, current_column overlaps non-zero pixels on the screen.
+; Returns al=0 if free, al=1 if not.
 
 test_piece      proc    near
 
@@ -219,11 +225,11 @@ test_piece      proc    near
                 mov     ax,ds:[current_row]
 
                 mov     cx,320*8
-                mul     cx              ;ax=ax*320*8
-                add     ax,eka_x
+                mul     cx              ;ax=row*320*8
+                add     ax,first_x
                 add     ax,bx
                 sal     bx,3
-                add     bx,ax
+                add     bx,ax           ;bx=x+y*320 of the piece
 
                 mov     cx,ds:[current_piece]
                 mov     dx,ds:[current_angle]
@@ -236,14 +242,16 @@ test_piece      proc    near
                 mov     si,cx
                 mov     dx,seg dseg
                 mov     ds,dx
-                mov     dx,word ptr ds:paloja[si]
+                mov     dx,word ptr ds:piece_shapes[si]
 
                 mov     cx,4
 
-                mov     ax,0a000h
+                mov     ax,vga_seg
                 mov     es,ax
                 mov     di,bx
 
+; dx holds the shape as a 4*4 bit map, top row in the highest four bits.
+; Only the top left pixel of each block is tested.
 tp_l:           test    dh,080h
                 jz      tp_1
                 mov     bl,es:[di]

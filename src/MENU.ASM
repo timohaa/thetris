@@ -8,9 +8,10 @@
 cseg            segment
                 assume  cs:cseg,ds:dseg
 
+; The game menu. Returns when Esc is pressed.
 game_menu       proc    near
 
-takas_takas:
+menu_again:
                 call    clear_screen
                 mov     dx,seg logo
                 mov     ds,dx
@@ -58,44 +59,47 @@ wait_keyb:      mov     ax,fs:[keycode]
 
                 mov     word ptr ds:[keycode],0h
 
-                cmp     al,1eh
-                jnz     ei_a
+                cmp     al,1eh          ;A
+                jnz     not_a
                 mov     fs:[number_of_pieces],7
                 call    fade_out
                 call    game
-                jmp     takas_takas
-ei_a:
-                cmp     al,30h
-                jnz     ei_b
+                jmp     menu_again
+not_a:
+                cmp     al,30h          ;B
+                jnz     not_b
                 mov     fs:[number_of_pieces],15
                 call    fade_out
                 call    game
-                jmp     takas_takas
+                jmp     menu_again
 
-ei_b:           cmp     al,23h
-                jnz     ei_h
+not_b:          cmp     al,23h          ;H
+                jnz     not_h
 
                 call    fade_out
                 call    show_highscores
-                jmp     takas_takas
+                jmp     menu_again
 
-ei_h:           cmp     al,17h
-                jnz     ei_i
+not_h:          cmp     al,17h          ;I
+                jnz     not_i
                 call    fade_out
                 call    show_info
-                jmp     takas_takas
-ei_i:           cmp     al,1fh
-                jnz     ei_s
+                jmp     menu_again
+not_i:          cmp     al,1fh          ;S
+                jnz     not_s
                 call    fade_out
                 call    game_setup
-                jmp     takas_takas
+                jmp     menu_again
 
-ei_s:
-                cmp     al,1h
+not_s:
+                cmp     al,1h           ;Esc
                 jnz     wait_keyb
                 call    fade_out
                 ret
 
+
+; The information screen: the texts listed in info_texts, centred, 11
+; pixels apart.
 
 show_info:
                 call    clear_screen
@@ -108,7 +112,7 @@ show_info:
 sin_loop:       mov     si,es:[di]
                 add     di,2
                 cmp     si,0h
-                jz      sin_pois
+                jz      sin_done
                 push    bx
                 push    es
                 push    di
@@ -120,7 +124,7 @@ sin_loop:       mov     si,es:[di]
                 add     bx,11
                 jmp     sin_loop
 
-sin_pois:
+sin_done:
                 call    fade_in
                 mov     dx,seg dseg
                 mov     ds,dx
@@ -135,48 +139,52 @@ wait_keybsh:    mov     ax,ds:[keycode]
 
 ;-----------------------------------------------------------------------
 
+; The setup screen. Esc saves the settings and returns.
+
 game_setup:
                 call    clear_screen
                 mov     dx,dseg
                 mov     ds,dx
                 mov     fs,dx
-                call    setup_ruutu
+                call    setup_screen
                 call    fade_in
 
-uusix:          call    setup_ruutu
+setup_again:    call    setup_screen
 wait_keybs:     mov     ax,ds:[keycode]
                 test    al,0ffh
                 jz      wait_keybs
                 mov     ds:[keycode],0
 
-                cmp     al,13h
-                jnz     wei_r
+                cmp     al,13h          ;R
+                jnz     setup_not_r
                 call    redefine_keys
                 jmp     game_setup
-wei_r:
-                cmp     al,1fh
-                jnz     wei_s
+setup_not_r:
+                cmp     al,1fh          ;S
+                jnz     setup_not_s
                 xor     ds:[flags],soundflag
-                jmp     uusix
-wei_s:
-                cmp     al,21h
-                jnz     wei_f
+                jmp     setup_again
+setup_not_s:
+                cmp     al,21h          ;F
+                jnz     setup_not_f
                 xor     ds:[flags],fadeflag
-                jmp     uusix
-wei_f:
-                cmp     al,31h
-                jnz     wei_n
+                jmp     setup_again
+setup_not_f:
+                cmp     al,31h          ;N
+                jnz     setup_not_n
                 xor     ds:[flags],nextflag
-                jmp     uusix
-wei_n:
-                cmp     al,1h
+                jmp     setup_again
+setup_not_n:
+                cmp     al,1h           ;Esc
                 jnz     wait_keybs
 
                 call    fade_out
                 call    write_setup
                 ret
 
-setup_ruutu:    mov     si,offset setup_menu
+; Draws the setup menu with the current state of each setting.
+
+setup_screen:   mov     si,offset setup_menu
                 mov     ax,159
                 mov     bx,50
                 call    center_text
@@ -216,6 +224,9 @@ nf_off:
                 mov     bx,121
                 call    center_text
                 ret
+
+; Asks for the eight game keys in turn. The keys are cleared first, so that
+; get_key can refuse a key that is already taken.
 
 redefine_keys:
                 call    fade_out
@@ -295,6 +306,10 @@ redefine_keys:
 
                 call    fade_out
                 ret
+
+; Waits for a key that is not taken yet and draws its name after the
+; prompt. Returns ax=key code. Left shift is not accepted.
+
 get_key:
 wait_keybsr:    mov     ax,ds:[keycode]
                 test    al,0ffh
@@ -324,7 +339,7 @@ wait_keybsr:    mov     ax,ds:[keycode]
 
                 push    ax
 
-                mov     si,offset asciilista
+                mov     si,offset key_names
                 mov     bx,ax
                 and     bx,0ffh
                 shl     bx,1
@@ -339,15 +354,17 @@ wait_keybsr:    mov     ax,ds:[keycode]
 
 ;-----------------------------------------------------------------------
 
+; The high score screen: game A on the left, game B on the right.
+
 show_highscores:
                 call    clear_screen
 
                 mov     dx,seg high_tausta
                 mov     ds,dx
                 mov     si,offset high_tausta
-                mov     dx,0a000h
+                mov     dx,vga_seg
                 mov     es,dx
-                mov     di,high_taus_y*320
+                mov     di,high_bg_y*320
 
                 mov     cx,320*188
                 rep     movsb
@@ -413,6 +430,9 @@ wait_keybh2:    mov     ax,ds:[keycode]
                 ret
 
 
+; Asks for the starting level. Returns al=0 with level set, or al=1 if Esc
+; was pressed.
+
 ask_level:      call    clear_screen
                 mov     si,offset level_text
                 mov     ax,159
@@ -426,16 +446,16 @@ wait_keyc:      mov     ax,fs:[keycode]
                 jz      wait_keyc
                 mov     word ptr ds:[keycode],0h
 
-                cmp     al,1h
+                cmp     al,1h           ;Esc
                 jz      esc_hit
-                cmp     al,0bh
+                cmp     al,0bh          ;the 0 key
                 ja      wait_keyc
-                jnz     ei_nolla
+                jnz     level_not_0
                 call    fade_out
                 xor     al,al
                 mov     ds:[level],al
                 ret
-ei_nolla:       dec     al
+level_not_0:    dec     al              ;keys 1 - 9 have scan codes 2 - 10
                 mov     ds:[level],al
                 xor     al,al
 esc_hit:
